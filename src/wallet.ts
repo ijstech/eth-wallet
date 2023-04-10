@@ -529,7 +529,29 @@ function initWeb3ModalLib(callback: () => void){
 				name: 'TACT',
 				symbol: 'TACT'
 			}
-		}
+		},
+		421613: {
+			chainId: 421613,
+			chainName: "Arbitrum Goerli Testnet",
+			rpcUrls: ['https://goerli-rollup.arbitrum.io/rpc'],
+			blockExplorerUrls: ['https://goerli.arbiscan.io/tx/'],
+			nativeCurrency: {
+				decimals: 18,
+				name: 'ETH',
+				symbol: 'ETH'
+			}
+		},
+		42161: {
+			chainId: 42161,
+			chainName: "Arbitrum One",
+			rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+			blockExplorerUrls: ['https://arbiscan.io/tx/'],
+			nativeCurrency: {
+				decimals: 18,
+				name: 'ETH',
+				symbol: 'ETH'
+			}
+		},
 	}
 	export interface IClientProviderOptions {	
 		name?: string;
