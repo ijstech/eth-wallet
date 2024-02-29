@@ -16,7 +16,7 @@
     },
     "devDependencies": {
         "@ijstech/eth-contract": "^0.1.5",
-        "@openzeppelin/contracts": "4.9.3",
+        "@openzeppelin/contracts": "4.9.6",
         "@types/mocha": "9.1.1",
         "@types/node": "18.15",
         "esbuild": "0.13.13",
