@@ -12,7 +12,7 @@
         "bignumber.js": "9.1.1",
         "ethereum-cryptography": "1.1.2",
         "web3-eth": "1.9.0",
-        "web3-utils": "1.9.0"
+        "web3-utils": "4.2.1"
     },
     "devDependencies": {
         "@ijstech/eth-contract": "^0.1.5",
