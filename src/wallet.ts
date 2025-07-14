@@ -1446,8 +1446,16 @@ export class Wallet implements IClientWallet {
 		const isClientSide = typeof window !== "undefined" && !!this.clientSideProvider;
 		if (isClientSide) {
 			const ethers = EthersLib.ethers;
-			this._ethersProvider = new ethers.BrowserProvider(this.clientSideProvider.provider);
-			signer = this._ethersProvider.getSigner();
+			if (typeof this.clientSideProvider.provider === 'string') {
+				this._ethersProvider = new ethers.JsonRpcProvider(this.clientSideProvider.provider);
+			} else {
+				this._ethersProvider = new ethers.BrowserProvider(this.clientSideProvider.provider);
+			}
+			if (this._account && this._account.privateKey) {
+				signer = new ethers.Wallet(this._account.privateKey, this._ethersProvider);
+			} else {
+				signer = await this._ethersProvider.getSigner(this.address);
+			}
 		}
 		else if (this._accounts && this._accounts.some(v => v.address == this.address)) {
 			const account = this._accounts.find(v => v.address == this.address);
