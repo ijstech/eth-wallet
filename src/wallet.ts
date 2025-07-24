@@ -905,6 +905,9 @@ export class Wallet implements IClientWallet {
 		else {
 			this._account = account;
 		};
+		if (typeof window === "undefined") {
+			EthersLib = require("ethers");
+		}
 		if (EthersLib) {
 			this.init();
 		}
