@@ -1,6 +1,6 @@
 {
     "name": "@ijstech/eth-wallet",
-    "version": "0.1.110",
+    "version": "0.1.111",
     "license": "BUSL-1.1",
     "main": "lib/index.js",
     "bin": {
