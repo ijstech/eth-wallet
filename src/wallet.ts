@@ -2144,6 +2144,13 @@ export class Wallet implements IClientWallet {
 		const receipt = await this.sendTransaction(tx);
 		return receipt;
 	};
+	async estimateGas(tx:TransactionOptions): Promise<string> {
+		await this.init();
+		let gas = (await this._ethersProvider.estimateGas({
+			...tx,
+			value: tx.value instanceof BigNumber ? tx.value.toFixed() : tx.value })).toString();
+		return gas;
+	};
 	async setBlockTime(time: number): Promise<any> {
 		await this.init();
 
