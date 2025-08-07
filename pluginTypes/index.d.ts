@@ -1,5 +1,4 @@
-/// <amd-module name="@ijstech/eth-wallet/web3.ts" />
-declare module "@ijstech/eth-wallet/web3.ts" {
+declare module "web3" {
     import { BigNumber } from 'bignumber.js';
     export type Hex = string | number;
     export type Unit = 'noether' | 'wei' | 'kwei' | 'Kwei' | 'babbage' | 'femtoether' | 'mwei' | 'Mwei' | 'lovelace' | 'picoether' | 'gwei' | 'Gwei' | 'shannon' | 'nanoether' | 'nano' | 'szabo' | 'microether' | 'micro' | 'finney' | 'milliether' | 'milli' | 'ether' | 'kether' | 'grand' | 'mether' | 'gether' | 'tether';
@@ -1341,21 +1340,19 @@ declare module "contracts/MultiCall/MultiCall" {
         private assign;
     }
 }
-/// <amd-module name="@ijstech/eth-wallet/contracts/index.ts" />
-declare module "@ijstech/eth-wallet/contracts/index.ts" {
+declare module "contracts/index" {
     export { ERC1155 } from "contracts/ERC1155/ERC1155";
     export { ERC20 } from "contracts/ERC20/ERC20";
     export { ERC721 } from "contracts/ERC721/ERC721";
     export { MultiCall } from "contracts/MultiCall/MultiCall";
 }
-/// <amd-module name="@ijstech/eth-wallet/contract.ts" />
-declare module "@ijstech/eth-wallet/contract.ts" {
+declare module "contract" {
     /*!-----------------------------------------------------------
     * Copyright (c) IJS Technologies. All rights reserved.
     * Released under dual AGPLv3/commercial license
     * https://ijs.network
     *-----------------------------------------------------------*/
-    import { IWallet, TransactionReceipt, Event, IBatchRequestObj } from "@ijstech/eth-wallet/wallet.ts";
+    import { IWallet, TransactionReceipt, Event, IBatchRequestObj } from "wallet";
     module Contract {
         interface EventType {
             name: string;
@@ -1389,8 +1386,7 @@ declare module "@ijstech/eth-wallet/contract.ts" {
     }
     export = Contract;
 }
-/// <amd-module name="@ijstech/eth-wallet/types.ts" />
-declare module "@ijstech/eth-wallet/types.ts" {
+declare module "types" {
     /*!-----------------------------------------------------------
    * Copyright (c) IJS Technologies. All rights reserved.
    * Released under dual AGPLv3/commercial license
@@ -1521,8 +1517,7 @@ declare module "@ijstech/eth-wallet/types.ts" {
         setPRNG(fn: (x: Uint8Array, n: number) => void): void;
     }
 }
-/// <amd-module name="@ijstech/eth-wallet/constants.ts" />
-declare module "@ijstech/eth-wallet/constants.ts" {
+declare module "constants" {
     export const EIP712DomainAbi: {
         name: string;
         type: string;
@@ -1572,16 +1567,15 @@ declare module "@ijstech/eth-wallet/constants.ts" {
         ChainChanged = "chainChanged"
     }
 }
-/// <amd-module name="@ijstech/eth-wallet/utils.ts" />
-declare module "@ijstech/eth-wallet/utils.ts" {
+declare module "utils" {
     /*!-----------------------------------------------------------
     * Copyright (c) IJS Technologies. All rights reserved.
     * Released under dual AGPLv3/commercial license
     * https://ijs.network
     *-----------------------------------------------------------*/
     import { BigNumber } from "bignumber.js";
-    import { EIP712TypeMap, IEIP712Domain, MessageTypes, TypedMessage } from "@ijstech/eth-wallet/types.ts";
-    import { ISendTxEventsOptions } from "@ijstech/eth-wallet/wallet.ts";
+    import { EIP712TypeMap, IEIP712Domain, MessageTypes, TypedMessage } from "types";
+    import { ISendTxEventsOptions } from "wallet";
     export function sleep(millisecond: number): Promise<unknown>;
     export function numberToBytes32(value: number | BigNumber, prefix?: boolean): string;
     export function padLeft(string: string, chars: number, sign?: string): string;
@@ -1608,15 +1602,14 @@ declare module "@ijstech/eth-wallet/utils.ts" {
     export function stringToUnicodeHex(str: string): string;
     export function hexToString(hex: string): string;
 }
-/// <amd-module name="@ijstech/eth-wallet/contracts/erc20.ts" />
-declare module "@ijstech/eth-wallet/contracts/erc20.ts" {
+declare module "contracts/erc20" {
     /*!-----------------------------------------------------------
     * Copyright (c) IJS Technologies. All rights reserved.
     * Released under dual AGPLv3/commercial license
     * https://ijs.network
     *-----------------------------------------------------------*/
-    import { IWallet, TransactionReceipt, Event } from "@ijstech/eth-wallet/wallet.ts";
-    import { Contract } from "@ijstech/eth-wallet/contract.ts";
+    import { IWallet, TransactionReceipt, Event } from "wallet";
+    import { Contract } from "contract";
     import { BigNumber } from 'bignumber.js';
     export class Erc20 extends Contract {
         private _decimals;
@@ -1671,8 +1664,7 @@ declare module "@ijstech/eth-wallet/contracts/erc20.ts" {
         }
     }
 }
-/// <amd-module name="@ijstech/eth-wallet/eventBus.ts" />
-declare module "@ijstech/eth-wallet/eventBus.ts" {
+declare module "eventBus" {
     export interface IEventBusRegistry {
         id: number;
         event: string;
@@ -1701,8 +1693,7 @@ declare module "@ijstech/eth-wallet/eventBus.ts" {
         private getNextId;
     }
 }
-/// <amd-module name="@ijstech/eth-wallet/providers.json.ts" />
-declare module "@ijstech/eth-wallet/providers.json.ts" {
+declare module "providers.json" {
     const _default_4: {
         MetaMask: {
             displayName: string;
@@ -1793,13 +1784,12 @@ declare module "ethers" {
         };
     }
 }
-/// <amd-module name="@ijstech/eth-wallet/wallet.ts" />
-declare module "@ijstech/eth-wallet/wallet.ts" {
-    import { ConfirmationObject, TransactionReceipt } from "@ijstech/eth-wallet/web3.ts";
+declare module "wallet" {
+    import { ConfirmationObject, TransactionReceipt } from "web3";
     import { BigNumber } from 'bignumber.js';
-    import { Erc20 } from "@ijstech/eth-wallet/contracts/erc20.ts";
-    import { IAbiDefinition, MessageTypes, TypedMessage } from "@ijstech/eth-wallet/types.ts";
-    import { IEventBusRegistry } from "@ijstech/eth-wallet/eventBus.ts";
+    import { Erc20 } from "contracts/erc20";
+    import { IAbiDefinition, MessageTypes, TypedMessage } from "types";
+    import { IEventBusRegistry } from "eventBus";
     export { TransactionReceipt, ConfirmationObject };
     export function toString(value: any): any;
     export type stringArray = string | _stringArray;
@@ -2325,6 +2315,7 @@ declare module "@ijstech/eth-wallet/wallet.ts" {
         }): Promise<Event[]>;
         scanEvents(fromBlock: number, toBlock?: number | string, topics?: any, events?: any, address?: string | string[]): Promise<Event[]>;
         send(to: string, amount: number | BigNumber): Promise<TransactionReceipt>;
+        estimateGas(tx: TransactionOptions): Promise<string>;
         setBlockTime(time: number): Promise<any>;
         increaseBlockTime(value: number): Promise<any>;
         signMessage(msg: string): Promise<string>;
@@ -2378,11 +2369,10 @@ declare module "@ijstech/eth-wallet/wallet.ts" {
         registerWalletEvent(sender: any, event: string, callback: Function): IEventBusRegistry;
     }
 }
-/// <amd-module name="@ijstech/eth-wallet/approvalModel/ERC20ApprovalModel.ts" />
-declare module "@ijstech/eth-wallet/approvalModel/ERC20ApprovalModel.ts" {
+declare module "approvalModel/ERC20ApprovalModel" {
     import { BigNumber } from 'bignumber.js';
-    import { IRpcWallet, TransactionReceipt } from "@ijstech/eth-wallet/wallet.ts";
-    import { ITokenObject } from "@ijstech/eth-wallet/types.ts";
+    import { IRpcWallet, TransactionReceipt } from "wallet";
+    import { ITokenObject } from "types";
     export const getERC20Allowance: (wallet: IRpcWallet, token: ITokenObject, spenderAddress: string) => Promise<BigNumber>;
     export interface IERC20ApprovalEventOptions {
         sender: any;
@@ -2417,7 +2407,7 @@ declare module "@ijstech/eth-wallet/approvalModel/ERC20ApprovalModel.ts" {
 }
 /// <amd-module name="@ijstech/eth-wallet/approvalModel/index.ts" />
 declare module "@ijstech/eth-wallet/approvalModel/index.ts" {
-    export { getERC20Allowance, IERC20ApprovalEventOptions, IERC20ApprovalOptions, IERC20ApprovalAction, ERC20ApprovalModel } from "@ijstech/eth-wallet/approvalModel/ERC20ApprovalModel.ts";
+    export { getERC20Allowance, IERC20ApprovalEventOptions, IERC20ApprovalOptions, IERC20ApprovalAction, ERC20ApprovalModel } from "approvalModel/ERC20ApprovalModel";
 }
 /// <amd-module name="@ijstech/eth-wallet" />
 declare module "@ijstech/eth-wallet" {
@@ -2426,14 +2416,14 @@ declare module "@ijstech/eth-wallet" {
     * Released under dual AGPLv3/commercial license
     * https://ijs.network
     *-----------------------------------------------------------*/
-    export { IWallet, IWalletUtils, IAccount, Wallet, Transaction, Event, TransactionReceipt, ISendTxEventsOptions, IClientProviderOptions, IBatchRequestObj, INetwork, EthereumProvider, MetaMaskProvider, Web3ModalProvider, IClientSideProviderEvents, IClientSideProvider, IClientWalletConfig, IClientWallet, IMulticallInfo, RpcWallet, IRpcWalletConfig, IRpcWallet, IConnectWalletEventPayload, IMulticallContractCall } from "@ijstech/eth-wallet/wallet.ts";
-    export { Contract } from "@ijstech/eth-wallet/contract.ts";
+    export { IWallet, IWalletUtils, IAccount, Wallet, Transaction, Event, TransactionReceipt, ISendTxEventsOptions, IClientProviderOptions, IBatchRequestObj, INetwork, EthereumProvider, MetaMaskProvider, Web3ModalProvider, IClientSideProviderEvents, IClientSideProvider, IClientWalletConfig, IClientWallet, IMulticallInfo, RpcWallet, IRpcWalletConfig, IRpcWallet, IConnectWalletEventPayload, IMulticallContractCall } from "wallet";
+    export { Contract } from "contract";
     export { BigNumber } from "bignumber.js";
-    export { Erc20 } from "@ijstech/eth-wallet/contracts/erc20.ts";
-    export * as Utils from "@ijstech/eth-wallet/utils.ts";
-    export * as Contracts from "@ijstech/eth-wallet/contracts/index.ts";
-    export * as Types from "@ijstech/eth-wallet/types.ts";
-    export * as Constants from "@ijstech/eth-wallet/constants.ts";
-    export { IEventBusRegistry, EventBus } from "@ijstech/eth-wallet/eventBus.ts";
+    export { Erc20 } from "contracts/erc20";
+    export * as Utils from "utils";
+    export * as Contracts from "contracts/index";
+    export * as Types from "types";
+    export * as Constants from "constants";
+    export { IEventBusRegistry, EventBus } from "eventBus";
     export { getERC20Allowance, IERC20ApprovalEventOptions, IERC20ApprovalOptions, IERC20ApprovalAction, ERC20ApprovalModel } from "@ijstech/eth-wallet/approvalModel/index.ts";
 }

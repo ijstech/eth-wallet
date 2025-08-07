@@ -533,6 +533,7 @@ export declare class Wallet implements IClientWallet {
     }): Promise<Event[]>;
     scanEvents(fromBlock: number, toBlock?: number | string, topics?: any, events?: any, address?: string | string[]): Promise<Event[]>;
     send(to: string, amount: number | BigNumber): Promise<TransactionReceipt>;
+    estimateGas(tx: TransactionOptions): Promise<string>;
     setBlockTime(time: number): Promise<any>;
     increaseBlockTime(value: number): Promise<any>;
     signMessage(msg: string): Promise<string>;
