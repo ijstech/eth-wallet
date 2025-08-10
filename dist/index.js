@@ -7727,6 +7727,13 @@ var _Wallet = class {
     const receipt = await this.sendTransaction(tx);
     return receipt;
   }
+  async estimateGas(tx) {
+    await this.init();
+    let gas = (await this._ethersProvider.estimateGas(__spreadProps(__spreadValues({}, tx), {
+      value: tx.value instanceof import_bignumber3.BigNumber ? tx.value.toFixed() : tx.value
+    }))).toString();
+    return gas;
+  }
   async setBlockTime(time) {
     await this.init();
     try {
