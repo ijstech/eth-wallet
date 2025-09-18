@@ -4882,7 +4882,7 @@ var require_lib = __commonJS({
           for (let name in receipt.events) {
             let events = Array.isArray(receipt.events[name]) ? receipt.events[name] : [receipt.events[name]];
             events.forEach((event) => {
-              if (topic0 == event.raw.topics[0] && this.address && event.address && this.address.toLowerCase() == event.address.toLowerCase()) {
+              if (topic0 == event.raw.topics[0] && (this.address && this.address == event.address)) {
                 result.push(this.wallet.decode(eventAbis[topic0], event, event.raw));
               }
             });
@@ -4890,7 +4890,7 @@ var require_lib = __commonJS({
         } else if (receipt.logs) {
           for (let i = 0; i < receipt.logs.length; i++) {
             let log = receipt.logs[i];
-            if (topic0 == log.topics[0] && this.address && log.address && this.address.toLowerCase() == log.address.toLowerCase()) {
+            if (topic0 == log.topics[0] && (this.address && this.address == log.address)) {
               result.push(this.wallet.decode(eventAbis[topic0], log));
             }
           }
@@ -5019,8 +5019,9 @@ var require_contract = __commonJS({
   "src/contract.ts"(exports, module2) {
     var Contract3;
     (function(_Contract5) {
+      ;
       class Contract4 {
-        constructor(wallet, address, abi, bytecode) {
+        constructor(wallet, address, abi, bytecode, linkReferences) {
           this.wallet = wallet;
           if (abi)
             this.abiHash = this.wallet.registerAbi(abi);
@@ -5029,6 +5030,7 @@ var require_contract = __commonJS({
           else
             this._abi = abi;
           this._bytecode = bytecode;
+          this._linkReferences = linkReferences;
           if (address)
             this._address = address;
         }
@@ -5118,14 +5120,34 @@ var require_contract = __commonJS({
         }
         async batchCall(batchObj, key, methodName, params, options) {
         }
+        async txData(methodName, params, options) {
+          return await this.wallet._txData(this.abiHash, this._address, methodName, params, options);
+        }
         async call(methodName, params, options) {
           return await this.wallet._call(this.abiHash, this._address, methodName, params, options);
         }
         async _send(methodName, params, options) {
           params = params || [];
           if (!methodName)
-            params.unshift(this._bytecode);
+            params.unshift(this.getDeployBytecode(options));
           return await this.wallet._send(this.abiHash, this._address, methodName, params, options);
+        }
+        getDeployBytecode(options) {
+          let bytecode = this._bytecode;
+          let libraries = options == null ? void 0 : options.libraries;
+          if (this._linkReferences) {
+            if (!libraries) {
+              throw new Error("libraries not specified");
+            }
+            for (let file in libraries) {
+              for (let contract in libraries[file]) {
+                for (let offset of this._linkReferences[file][contract]) {
+                  bytecode = bytecode.substring(0, offset.start * 2 + +(bytecode.startsWith("0x") ? 2 : 0)) + libraries[file][contract].replace("0x", "") + bytecode.substring(offset.start * 2 + +(bytecode.startsWith("0x") ? 2 : 0) + offset.length * 2);
+                }
+              }
+            }
+          }
+          return bytecode;
         }
         async __deploy(params, options) {
           let receipt = await this._send("", params, options);
