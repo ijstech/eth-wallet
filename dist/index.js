@@ -4838,7 +4838,7 @@ var require_lib = __commonJS({
     } });
     exports.nullAddress = "0x0000000000000000000000000000000000000000";
     var Contract3 = class {
-      constructor(wallet, address, abi, bytecode, linkReferences) {
+      constructor(wallet, address, abi, bytecode) {
         this.wallet = wallet;
         if (abi)
           this.abiHash = this.wallet.registerAbi(abi);
@@ -4847,7 +4847,6 @@ var require_lib = __commonJS({
         else
           this._abi = abi;
         this._bytecode = bytecode;
-        this._linkReferences = linkReferences;
         if (address)
           this._address = address;
       }
@@ -4905,15 +4904,12 @@ var require_lib = __commonJS({
         }
         return result;
       }
-      _getInputList(inputs) {
-        return "(" + inputs.map((e) => e.type.startsWith("tuple") ? this._getInputList(e.components) + (e.type == "tuple[]" ? "[]" : "") : e.type).join(",") + ")";
-      }
       getAbiEvents() {
         if (!this._events) {
           this._events = {};
           let events = this._abi.filter((e) => e.type == "event");
           for (let i = 0; i < events.length; i++) {
-            let topic = this.wallet.utils.sha3(events[i].name + this._getInputList(events[i].inputs));
+            let topic = this.wallet.utils.sha3(events[i].name + "(" + events[i].inputs.map((e) => e.type == "tuple" ? "(" + e.components.map((f) => f.type) + ")" : e.type).join(",") + ")");
             this._events[topic] = events[i];
           }
         }
@@ -4958,26 +4954,21 @@ var require_lib = __commonJS({
         params = params || [];
         return await this.wallet._send(this.abiHash, this._address, methodName, params, options);
       }
-      getDeployBytecode(options) {
+      async __deploy(params, options) {
         let bytecode = this._bytecode;
         let libraries = options?.libraries;
-        if (this._linkReferences) {
-          if (!libraries) {
-            throw new Error("libraries not specified");
-          }
+        let linkReferences = options?.linkReferences;
+        if (libraries && linkReferences) {
           for (let file in libraries) {
             for (let contract in libraries[file]) {
-              for (let offset of this._linkReferences[file][contract]) {
-                bytecode = bytecode.substring(0, offset.start * 2 + +(bytecode.startsWith("0x") ? 2 : 0)) + libraries[file][contract].replace("0x", "") + bytecode.substring(offset.start * 2 + +(bytecode.startsWith("0x") ? 2 : 0) + offset.length * 2);
+              for (let offset of linkReferences[file][contract]) {
+                bytecode = bytecode.substring(0, offset.start * 2 + 2) + libraries[file][contract].replace("0x", "") + bytecode.substring(offset.start * 2 + 2 + offset.length * 2);
               }
             }
           }
         }
-        return bytecode;
-      }
-      async __deploy(params, options) {
         params = params || [];
-        params.unshift(this.getDeployBytecode(options));
+        params.unshift(bytecode);
         let receipt = await this._send("", params, options);
         this.address = receipt.contractAddress;
         return this.address;
@@ -7337,13 +7328,13 @@ var _Wallet = class {
       const reasonMatch = errorString.match(/reason="([^"]+)"/);
       const errorCodeMatch = errorString.match(/"code":\s*(\d+)/);
       const messageMatch = errorString.match(/"message":\s*"([^"]+)"/);
-      if (!actionMatch || !reasonMatch || !errorCodeMatch || !messageMatch) {
+      if (!actionMatch && !reasonMatch && !errorCodeMatch && !messageMatch) {
         throw new Error("Failed to extract required fields from error string");
       }
-      const action = actionMatch[1];
-      const reason = reasonMatch[1];
-      const errorCode = parseInt(errorCodeMatch[1], 10);
-      const message = messageMatch[1];
+      const action = actionMatch && actionMatch[1];
+      const reason = reasonMatch && reasonMatch[1];
+      const errorCode = errorCodeMatch && parseInt(errorCodeMatch[1], 10);
+      const message = messageMatch && messageMatch[1];
       return {
         action,
         reason,
@@ -7901,8 +7892,8 @@ var _Wallet = class {
   }
   convertEthersTransactionReceipt(ethersReceipt) {
     return {
-      transactionHash: ethersReceipt.hash,
-      transactionIndex: BigInt(ethersReceipt.index || 0),
+      transactionHash: ethersReceipt.transactionHash || ethersReceipt.hash,
+      transactionIndex: BigInt(ethersReceipt.transactionIndex || 0),
       blockHash: ethersReceipt.blockHash,
       blockNumber: BigInt(ethersReceipt.blockNumber || 0),
       from: ethersReceipt.from,
@@ -7914,16 +7905,16 @@ var _Wallet = class {
         address: log.address,
         data: log.data,
         topics: [...log.topics],
-        logIndex: BigInt(log.index),
-        transactionIndex: BigInt(ethersReceipt.index),
-        transactionHash: ethersReceipt.hash,
-        blockHash: ethersReceipt.blockHash,
-        blockNumber: BigInt(ethersReceipt.blockNumber),
+        logIndex: BigInt(log.logIndex || log.index || 0),
+        transactionIndex: BigInt(log.transactionIndex || 0),
+        transactionHash: log.transactionHash,
+        blockHash: log.blockHash,
+        blockNumber: BigInt(log.blockNumber || 0),
         removed: log.removed
       })) : [],
       logsBloom: ethersReceipt.logsBloom,
       status: BigInt(ethersReceipt.status || 0),
-      effectiveGasPrice: ethersReceipt.gasPrice
+      effectiveGasPrice: ethersReceipt.effectiveGasPrice
     };
   }
   async sendTransaction(transaction) {
@@ -7935,20 +7926,29 @@ var _Wallet = class {
     if (transaction.value) {
       signerTx.value = transaction.value instanceof import_bignumber3.BigNumber ? transaction.value.toFixed() : transaction.value;
     }
-    const ethersReceipt = await signer.sendTransaction(signerTx);
-    const receipt = this.convertEthersTransactionReceipt(ethersReceipt);
-    if (this._sendTxEventHandler.transactionHash)
-      this._sendTxEventHandler.transactionHash(null, receipt.transactionHash);
-    ethersReceipt.wait().then((receipt2) => {
-      this._sendTxEventHandler.confirmation(receipt2);
-    }).catch((error) => {
-      if (error.message.startsWith("Transaction was not mined within 50 blocks")) {
-        return;
+    try {
+      const transactionResponse = await signer.sendTransaction(signerTx);
+      try {
+        if (this._sendTxEventHandler.transactionHash)
+          this._sendTxEventHandler.transactionHash(null, transactionResponse.hash || transactionResponse.transactionHash);
+        const transactionReceipt = await transactionResponse.wait();
+        const receipt = this.convertEthersTransactionReceipt(transactionReceipt);
+        if (this._sendTxEventHandler.confirmation)
+          this._sendTxEventHandler.confirmation(receipt);
+        return receipt;
+      } catch (error) {
+        if (error.message.startsWith("Transaction was not mined within 50 blocks")) {
+          return;
+        }
+        if (this._sendTxEventHandler.transactionHash)
+          this._sendTxEventHandler.transactionHash(error);
+        throw error;
       }
+    } catch (error) {
       if (this._sendTxEventHandler.transactionHash)
         this._sendTxEventHandler.transactionHash(error);
-    });
-    return receipt;
+      throw error;
+    }
   }
   async getTransaction(transactionHash) {
     await this.init();
@@ -8376,11 +8376,6 @@ var ERC20ApprovalModel = class {
 /*!-----------------------------------------------------------
 * Copyright (c) IJS Technologies. All rights reserved.
 * Released under dual AGPLv3/commercial license
-* https://ijs.network
-*-----------------------------------------------------------*/
-/*!-----------------------------------------------------------
-* Copyright (c) IJS Technologies. All rights reserved.
-* Released under dual BSL 1.1/commercial license
 * https://ijs.network
 *-----------------------------------------------------------*/
 

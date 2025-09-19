@@ -50,8 +50,8 @@ declare module Contract {
         protected decodeEvents(receipt: TransactionReceipt): any[];
         protected parseEvents(receipt: TransactionReceipt, eventName: string): Event[];
         get events(): EventType[];
-        protected getAbiEvents(): any;
-        protected getAbiTopics(eventNames?: string[]): any[];
+        getAbiEvents(): any;
+        getAbiTopics(eventNames?: string[]): any[];
         scanEvents(fromBlock: number, toBlock: number | string, eventNames?: string[]): Promise<Event[]>;
         batchCall(batchObj: IBatchRequestObj, key: string, methodName: string, params?: any[], options?: number | BigNumber | TransactionOptions): Promise<void>;
         protected txData(methodName: string, params?: any[], options?: number | BigNumber | TransactionOptions): Promise<string>;

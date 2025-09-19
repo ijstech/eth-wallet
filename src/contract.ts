@@ -110,7 +110,7 @@ module Contract {
             }
             return result;
         }
-        protected getAbiEvents(){
+        getAbiEvents(){
             if (!this._events){
                 this._events = {};
                 let events = this._abi.filter(e => e.type=="event");
@@ -121,7 +121,7 @@ module Contract {
             }
             return this._events;
         }
-        protected getAbiTopics(eventNames?: string[]): any[]{
+        getAbiTopics(eventNames?: string[]): any[]{
 			if (!eventNames || eventNames.length == 0)
 				eventNames = null;
 			let result = [];
