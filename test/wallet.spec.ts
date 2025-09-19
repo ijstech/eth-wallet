@@ -4,7 +4,7 @@ import {Utils} from "../src";
 import hardhat from "hardhat";
 import assert from 'assert';
 
-const Config = require('./config').wallet;
+// const Config = require('./config').wallet;
 
 suite('##Wallet Hardhat', async function() {
     this.timeout(20000);

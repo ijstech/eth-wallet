@@ -1481,14 +1481,14 @@ export class Wallet implements IClientWallet {
 			const errorCodeMatch = errorString.match(/"code":\s*(\d+)/);
 			const messageMatch = errorString.match(/"message":\s*"([^"]+)"/);
 
-			if (!actionMatch || !reasonMatch || !errorCodeMatch || !messageMatch) {
+			if (!actionMatch && !reasonMatch && !errorCodeMatch && !messageMatch) {
 				throw new Error("Failed to extract required fields from error string");
 			}
 
-			const action = actionMatch[1]; 
-			const reason = reasonMatch[1]; 
-			const errorCode = parseInt(errorCodeMatch[1], 10); 
-			const message = messageMatch[1]; 
+			const action = actionMatch && actionMatch[1]; 
+			const reason = reasonMatch && reasonMatch[1]; 
+			const errorCode = errorCodeMatch && parseInt(errorCodeMatch[1], 10); 
+			const message = messageMatch && messageMatch[1]; 
 
 			return {
 				action,
@@ -2306,8 +2306,8 @@ export class Wallet implements IClientWallet {
 	}
 	protected convertEthersTransactionReceipt(ethersReceipt: any): TransactionReceipt {
 		return {
-			transactionHash: ethersReceipt.hash,
-			transactionIndex: BigInt(ethersReceipt.index || 0),
+			transactionHash: ethersReceipt.transactionHash || ethersReceipt.hash,
+			transactionIndex: BigInt(ethersReceipt.transactionIndex || 0),
 			blockHash: ethersReceipt.blockHash,
 			blockNumber: BigInt(ethersReceipt.blockNumber || 0),
 			from: ethersReceipt.from,
@@ -2319,16 +2319,16 @@ export class Wallet implements IClientWallet {
 				address: log.address,
 				data: log.data,
 				topics: [...log.topics],
-				logIndex: BigInt(log.index),
-				transactionIndex: BigInt(ethersReceipt.index),
-				transactionHash: ethersReceipt.hash,
-				blockHash: ethersReceipt.blockHash,
-				blockNumber: BigInt(ethersReceipt.blockNumber),
+				logIndex: BigInt(log.logIndex || log.index || 0),
+				transactionIndex: BigInt(log.transactionIndex || 0),
+				transactionHash: log.transactionHash,
+				blockHash: log.blockHash,
+				blockNumber: BigInt(log.blockNumber || 0),
 				removed: log.removed,
 			})) : [],
 			logsBloom: ethersReceipt.logsBloom,
 			status: BigInt(ethersReceipt.status || 0),
-			effectiveGasPrice: ethersReceipt.gasPrice,
+			effectiveGasPrice: ethersReceipt.effectiveGasPrice,
 		};
 	}
 	async sendTransaction(transaction: TransactionOptions): Promise<TransactionReceipt> {
@@ -2341,22 +2341,30 @@ export class Wallet implements IClientWallet {
 		if (transaction.value) {
 			signerTx.value = transaction.value instanceof BigNumber ? transaction.value.toFixed() : transaction.value;
 		}
-		const ethersReceipt = await signer.sendTransaction(signerTx);
-		const receipt = this.convertEthersTransactionReceipt(ethersReceipt);
-		if (this._sendTxEventHandler.transactionHash)
-			this._sendTxEventHandler.transactionHash(null, receipt.transactionHash);
 
-		ethersReceipt.wait().then((receipt: any) => {
-			this._sendTxEventHandler.confirmation(receipt);
-		})
-			.catch((error: any) => {
+		try {
+			const transactionResponse =  await signer.sendTransaction(signerTx);
+			try {
+				if (this._sendTxEventHandler.transactionHash)
+					this._sendTxEventHandler.transactionHash(null, transactionResponse.hash || transactionResponse.transactionHash);
+				const transactionReceipt = await transactionResponse.wait()
+				const receipt = this.convertEthersTransactionReceipt(transactionReceipt);
+				if (this._sendTxEventHandler.confirmation)
+					this._sendTxEventHandler.confirmation(receipt);
+				return receipt;
+			} catch(error: any) {
 				if (error.message.startsWith("Transaction was not mined within 50 blocks")) {
 					return;
 				}
 				if (this._sendTxEventHandler.transactionHash)
 					this._sendTxEventHandler.transactionHash(error);
-			});
-		return receipt;
+				throw error;
+			}
+		} catch(error: any) {
+			if (this._sendTxEventHandler.transactionHash)
+				this._sendTxEventHandler.transactionHash(error);
+			throw error;
+		}
 	}
 	async getTransaction(transactionHash: string): Promise<Transaction> {
 		await this.init();

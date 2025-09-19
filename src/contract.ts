@@ -5,21 +5,43 @@
 *-----------------------------------------------------------*/
 
 import {IWallet, TransactionReceipt, Event, EventLog, IBatchRequestObj} from "./wallet";
+import {BigNumber} from 'bignumber.js';
 
 module Contract {
     export interface EventType{
 		name: string
 	}
+
+    export interface TransactionOptions {
+        from?: string;
+        to?: string;
+        nonce?: number;
+        gas?: number;
+        gasLimit?: number;
+        gasPrice?: BigNumber | number;
+        data?: string;
+        value?: BigNumber | number;
+    }
+    export interface DeployOptions extends TransactionOptions {
+        libraries?: {[file:string]:{[contract:string]:string}};
+    }
+    interface LinkReferences {
+        [file:string]: {
+            [contract:string]: {length:number; start:number;}[]
+        }
+    };
+
     export class Contract {
         public wallet: IWallet;
         public _abi: any;
-        public _bytecode: any;
+        public _bytecode: string;
+        public _linkReferences: LinkReferences;
         public _address: string;
         private _events: any;
         public privateKey: string;
         private abiHash: string;        
 
-        constructor(wallet: IWallet, address?: string, abi?: any, bytecode?: any) {            
+        constructor(wallet: IWallet, address?: string, abi?: any, bytecode?: string, linkReferences?: LinkReferences) {            
             this.wallet = wallet;
             if (abi)
                 this.abiHash = this.wallet.registerAbi(abi);
@@ -28,6 +50,7 @@ module Contract {
             else
                 this._abi = abi            
             this._bytecode = bytecode
+            this._linkReferences = linkReferences;
             if (address)
                 this._address = address;
         }    
@@ -45,7 +68,7 @@ module Contract {
             let events = this.getAbiEvents();
             let result = [];
             for (let name in receipt.events){
-                let events = <any[]>( Array.isArray(receipt.events[name]) ? receipt.events[name] : [receipt.events[name]] );
+                let events = <EventLog[]>( Array.isArray(receipt.events[name]) ? receipt.events[name] : [receipt.events[name]] );
                 events.forEach(e=>{
                     let data = e.raw;
                     let event = events[data.topics[0]];
@@ -61,7 +84,7 @@ module Contract {
             let result = [];
             if (receipt.events) {
                 for (let name in receipt.events){
-                    let events = <any[]>( Array.isArray(receipt.events[name]) ? receipt.events[name] : [receipt.events[name]] );
+                    let events = <EventLog[]>( Array.isArray(receipt.events[name]) ? receipt.events[name] : [receipt.events[name]] );
                     events.forEach(event=>{
                         if (topic0 == event.raw.topics[0] && (this.address && this.address.toLowerCase() == event.address.toLowerCase())) {
                             result.push(this.wallet.decode(eventAbis[topic0], event, event.raw));
@@ -121,7 +144,7 @@ module Contract {
         	let events = this.getAbiEvents();
             return this.wallet.scanEvents(fromBlock, toBlock, topics, events, this._address);
         };
-        async batchCall(batchObj: IBatchRequestObj, key: string, methodName: string, params?: any[], options?:any){
+        async batchCall(batchObj: IBatchRequestObj, key: string, methodName: string, params?: any[], options?:number|BigNumber|TransactionOptions){
             //TODO: implement the batch call
 
             // let contract = await this.getContract();
@@ -138,21 +161,41 @@ module Contract {
             //     ));
             // }));
         }        
-        protected async call(methodName:string, params?:any[], options?:any): Promise<any>{
+        protected async txData(methodName:string, params?:any[], options?:number|BigNumber|TransactionOptions): Promise<string>{
+            return await this.wallet._txData(this.abiHash, this._address, methodName, params, options);
+        }
+        protected async call(methodName:string, params?:any[], options?:number|BigNumber|TransactionOptions): Promise<any>{
             return await this.wallet._call(this.abiHash, this._address, methodName, params, options);
         }
-        private async _send(methodName:string, params?:any[], options?:any): Promise<TransactionReceipt>{
+        private async _send(methodName:string, params?:any[], options?:number|BigNumber|TransactionOptions): Promise<TransactionReceipt>{
             params = params || [];         
             if (!methodName)   
-                params.unshift(this._bytecode);
+                params.unshift(this.getDeployBytecode(options));
             return await this.wallet._send(this.abiHash, this._address, methodName, params, options);
         }
-        protected async __deploy(params?:any[], options?:any): Promise<string>{                        
+        getDeployBytecode(options?:number|BigNumber|DeployOptions): string{                   
+            let bytecode = this._bytecode;
+            let libraries = (<DeployOptions>options)?.libraries;
+            if (this._linkReferences){
+                if (!libraries) {
+                    throw new Error("libraries not specified")
+                }
+                for (let file in libraries) {
+                    for (let contract in libraries[file]) {
+                        for (let offset of this._linkReferences[file][contract]) {
+                            bytecode = bytecode.substring(0, offset.start * 2 + + (bytecode.startsWith("0x")?2:0)) + libraries[file][contract].replace("0x","") + bytecode.substring(offset.start * 2 + + (bytecode.startsWith("0x")?2:0) + offset.length * 2)
+                        }
+                    }
+                }
+            }
+            return bytecode;
+        }
+        protected async __deploy(params?:any[], options?:number|BigNumber|DeployOptions): Promise<string>{                        
             let receipt = await this._send('', params, options);
             this.address = receipt.contractAddress;
             return this.address;
         }
-        protected send(methodName:string, params?:any[], options?:any): Promise<TransactionReceipt>{
+        protected send(methodName:string, params?:any[], options?:number|BigNumber|TransactionOptions): Promise<TransactionReceipt>{
             let receipt = this._send(methodName, params, options);
             return receipt;
         }
