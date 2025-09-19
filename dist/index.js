@@ -4838,7 +4838,7 @@ var require_lib = __commonJS({
     } });
     exports.nullAddress = "0x0000000000000000000000000000000000000000";
     var Contract3 = class {
-      constructor(wallet, address, abi, bytecode) {
+      constructor(wallet, address, abi, bytecode, linkReferences) {
         this.wallet = wallet;
         if (abi)
           this.abiHash = this.wallet.registerAbi(abi);
@@ -4847,6 +4847,7 @@ var require_lib = __commonJS({
         else
           this._abi = abi;
         this._bytecode = bytecode;
+        this._linkReferences = linkReferences;
         if (address)
           this._address = address;
       }
@@ -4881,7 +4882,7 @@ var require_lib = __commonJS({
           for (let name in receipt.events) {
             let events = Array.isArray(receipt.events[name]) ? receipt.events[name] : [receipt.events[name]];
             events.forEach((event) => {
-              if (topic0 == event.raw.topics[0] && (this.address && this.address == event.address)) {
+              if (topic0 == event.raw.topics[0] && this.address && event.address && this.address.toLowerCase() == event.address.toLowerCase()) {
                 result.push(this.wallet.decode(eventAbis[topic0], event, event.raw));
               }
             });
@@ -4889,7 +4890,7 @@ var require_lib = __commonJS({
         } else if (receipt.logs) {
           for (let i = 0; i < receipt.logs.length; i++) {
             let log = receipt.logs[i];
-            if (topic0 == log.topics[0] && (this.address && this.address == log.address)) {
+            if (topic0 == log.topics[0] && this.address && log.address && this.address.toLowerCase() == log.address.toLowerCase()) {
               result.push(this.wallet.decode(eventAbis[topic0], log));
             }
           }
@@ -4904,12 +4905,15 @@ var require_lib = __commonJS({
         }
         return result;
       }
+      _getInputList(inputs) {
+        return "(" + inputs.map((e) => e.type.startsWith("tuple") ? this._getInputList(e.components) + (e.type == "tuple[]" ? "[]" : "") : e.type).join(",") + ")";
+      }
       getAbiEvents() {
         if (!this._events) {
           this._events = {};
           let events = this._abi.filter((e) => e.type == "event");
           for (let i = 0; i < events.length; i++) {
-            let topic = this.wallet.utils.sha3(events[i].name + "(" + events[i].inputs.map((e) => e.type == "tuple" ? "(" + e.components.map((f) => f.type) + ")" : e.type).join(",") + ")");
+            let topic = this.wallet.utils.sha3(events[i].name + this._getInputList(events[i].inputs));
             this._events[topic] = events[i];
           }
         }
@@ -4954,21 +4958,26 @@ var require_lib = __commonJS({
         params = params || [];
         return await this.wallet._send(this.abiHash, this._address, methodName, params, options);
       }
-      async __deploy(params, options) {
+      getDeployBytecode(options) {
         let bytecode = this._bytecode;
         let libraries = options?.libraries;
-        let linkReferences = options?.linkReferences;
-        if (libraries && linkReferences) {
+        if (this._linkReferences) {
+          if (!libraries) {
+            throw new Error("libraries not specified");
+          }
           for (let file in libraries) {
             for (let contract in libraries[file]) {
-              for (let offset of linkReferences[file][contract]) {
-                bytecode = bytecode.substring(0, offset.start * 2 + 2) + libraries[file][contract].replace("0x", "") + bytecode.substring(offset.start * 2 + 2 + offset.length * 2);
+              for (let offset of this._linkReferences[file][contract]) {
+                bytecode = bytecode.substring(0, offset.start * 2 + +(bytecode.startsWith("0x") ? 2 : 0)) + libraries[file][contract].replace("0x", "") + bytecode.substring(offset.start * 2 + +(bytecode.startsWith("0x") ? 2 : 0) + offset.length * 2);
               }
             }
           }
         }
+        return bytecode;
+      }
+      async __deploy(params, options) {
         params = params || [];
-        params.unshift(bytecode);
+        params.unshift(this.getDeployBytecode(options));
         let receipt = await this._send("", params, options);
         this.address = receipt.contractAddress;
         return this.address;
@@ -8376,6 +8385,11 @@ var ERC20ApprovalModel = class {
 /*!-----------------------------------------------------------
 * Copyright (c) IJS Technologies. All rights reserved.
 * Released under dual AGPLv3/commercial license
+* https://ijs.network
+*-----------------------------------------------------------*/
+/*!-----------------------------------------------------------
+* Copyright (c) IJS Technologies. All rights reserved.
+* Released under dual BSL 1.1/commercial license
 * https://ijs.network
 *-----------------------------------------------------------*/
 
