@@ -10,6 +10,7 @@ export {
     IAccount, 
     Transaction, 
     Event, 
+    TransactionOptions, 
     TransactionReceipt, 
     ISendTxEventsOptions, 
     IClientProviderOptions,
