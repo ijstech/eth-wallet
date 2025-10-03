@@ -4782,6 +4782,29 @@ define("bignumber.js", (require,exports)=>{
   exports['BigNumber'] = window["BigNumber"];
 });
 define("@ijstech/eth-wallet",(require, exports)=>{
+  if (typeof require !== 'function') {
+  require = function(id) {
+    if (id === "bignumber.js") {
+      // Return the BigNumber constructor that's already available in the bundle
+      return BigNumber;
+    }
+    
+    // For other modules, try to find them in the current scope
+    if (typeof window !== 'undefined' && window[id]) {
+      return window[id];
+    }
+    
+    // If not found, throw an error
+    throw new Error(`Module '${id}' not found. This module needs to be loaded separately or bundled.`);
+  };
+  
+  // Add require.resolve and require.cache for compatibility
+  require.resolve = function(id) {
+    return id;
+  };
+  
+  require.cache = {};
+}
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -4809,10 +4832,11 @@ var __markAsModule = (target) => __defProp(target, "__esModule", { value: true }
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[Object.keys(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
-var __export = (target, all) => {
-  __markAsModule(target);
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
+var __export = (target, all) => { 
+  if (target && typeof target === 'object') {
+    __markAsModule(target); 
+    for (var name in all) __defProp(target, name, { get: all[name], enumerable: true });
+  }
 };
 var __reExport = (target, module2, desc) => {
   if (module2 && typeof module2 === "object" || typeof module2 === "function") {

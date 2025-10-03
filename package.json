@@ -7,6 +7,7 @@
         "sol2ts": "tools/bin/compile.js"
     },
     "types": "types/index.d.ts",
+    "plugin": "dist/index.js",
     "pluginTypes": "pluginTypes/index.d.ts",
     "dependencies": {
         "bignumber.js": "9.1.1",

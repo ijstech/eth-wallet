@@ -43,6 +43,19 @@ async function build() {
     plugins: [],
   }).catch(() => process.exit(1));
   let plugin = await readFile('dist/plugin.js');
+   plugin = plugin.replace(`var __export = (target, all) => {
+  __markAsModule(target);
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};`,
+    `var __export = (target, all) => { 
+  if (target && typeof target === 'object') {
+    __markAsModule(target); 
+    for (var name in all) __defProp(target, name, { get: all[name], enumerable: true });
+  }
+};`
+  );
+
   let bignumber = await readFile('node_modules/bignumber.js/bignumber.js');
   let sha3 = await readFile('src/sha3.js');
   let nacl = await readFile('src/nacl.js');
@@ -65,6 +78,29 @@ define("bignumber.js", (require,exports)=>{
   exports['BigNumber'] = window["BigNumber"];
 });
 define("@ijstech/eth-wallet",(require, exports)=>{
+  if (typeof require !== 'function') {
+  require = function(id) {
+    if (id === "bignumber.js") {
+      // Return the BigNumber constructor that's already available in the bundle
+      return BigNumber;
+    }
+    
+    // For other modules, try to find them in the current scope
+    if (typeof window !== 'undefined' && window[id]) {
+      return window[id];
+    }
+    
+    // If not found, throw an error
+    throw new Error(\`Module '\${id}' not found. This module needs to be loaded separately or bundled.\`);
+  };
+  
+  // Add require.resolve and require.cache for compatibility
+  require.resolve = function(id) {
+    return id;
+  };
+  
+  require.cache = {};
+}
 ${plugin}
 });
 if (typeof(define) == 'function')
